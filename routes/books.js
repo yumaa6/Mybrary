@@ -1,18 +1,9 @@
 const express = require('express')
 const router = express.Router()
-const multer = require('multer')
-const path = require('path')
 const Book = require('../models/book')
 const Author = require('../models/author')
-const fs = require('fs')
-const uploadPath = path.join('public', Book.coverImageBasePath)
 const imageMimeTypes = ['image/jpeg', 'image/png', 'image/gif']
-const upload = multer({
-  dest: uploadPath,
-    /* fileFilter: (req, file, callback) => {
-    callback(null, )
-  }  */
- })
+
 
 // All Books Route
 router.get('/', async (req, res) => {
@@ -44,34 +35,9 @@ router.get('/new', async (req, res) => {
     
 })
 
-//creating new Book
-// router.post('/', upload.single('cover') /* Multer kümmert sich um das uploaden */ , async (req, res) => {
-//   const fileName = req.file != null ? req.file.filename : null /* "file" Variable kommt von Multer */
-//   console.log(req.body.title, req.body.author, new Date(req.body.publishDate), req.body.pageCount, req.body.description, fileName)
-//   
-//   const book = new Book({
-//       title: req.body.title,
-//       author: req.body.author,
-//       publishDate: new Date(req.body.publishDate),
-//       pageCount: req.body.pageCount,
-//       description: req.body.description,
-//       coverImageName: fileName
-//     }) 
-// 
-//     try {
-//       const newBook = await book.save()
-//       //res.redirect(`books/${newBook.id}`)
-//       res.redirect(`books`)
-// 
-//     } catch {
-//       renderNewPage(res, book, true)
-//     }
-// })
   
 //creating new Book
-  router.post('/', upload.single('cover'), async (req, res) => {
-  const fileName = req.file != null ? req.file.filename : null
-  console.log(req.file)
+  router.post('/',  async (req, res) => {
   /* if (req.file.file != null) {
     const fileName = req.file.filename
   } else {
@@ -82,29 +48,26 @@ router.get('/new', async (req, res) => {
     author: req.body.author,
     publishDate: new Date(req.body.publishDate),
     pageCount: req.body.pageCount,
-    coverImageName: fileName,
     description: req.body.description
   })
 
+  saveCover(book, req.body.cover)
+
   try {
-    console.log(fileName)
     const newBook = await book.save()
     // res.redirect(`books/${newBook.id}`)
     res.redirect(`books`)
   } catch {
-     if (book.coverImageName != null) {
-      removeBookCover(book.coverImageName)
-    } 
     renderNewPage(res, book, true)
   }
 })
 
-function removeBookCover(fileName) {
+/* function removeBookCover(fileName) {
   fs.unlink(path.join(uploadPath, fileName), err => {
-    if (err) console.error(err)
+    if (err) console.error(err)                        Brauchen das nicht mehr weil wir filepond benutzen
   })
 }
-
+ */
 
 
 async function renderNewPage(res, book, hasError = false) {
@@ -118,6 +81,15 @@ async function renderNewPage(res, book, hasError = false) {
     res.render('books/new', params)
   } catch{
     res.redirect('/books')
+  }
+}
+
+async function saveCover(book, coverEncoded) {
+  if (coverEncoded == null) return 
+  const cover = JSON.parse(coverEncoded)
+  if (cover != null && imageMimeTypes.includes(cover.type)) {
+    book.coverImage = new Buffer.from(cover.data, 'base64')
+    book.coverImageType = cover.type
   }
 }
 
